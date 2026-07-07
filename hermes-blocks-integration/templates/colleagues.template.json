@@ -1,0 +1,8 @@
+{
+  "<colleague-key>": {
+    "agentName": "<colleague>_hermes_<domain>",
+    "email": "<colleague@example.com>",
+    "tz": "<IANA timezone, e.g. America/Los_Angeles>",
+    "displayName": "<Colleague>"
+  }
+}

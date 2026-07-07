@@ -1,0 +1,81 @@
+{
+  "identity": {
+    "agentName": "<OWNER>_hermes_<DOMAIN>",
+    "displayName": "<Owner>'s <Domain> Agent",
+    "description": "<What this agent does, one sentence — mention it handles requests from other agents with owner approval if using the approval pattern>",
+    "version": "1.0.0",
+    "provider": {
+      "organization": "<ORGANIZATION>"
+    }
+  },
+  "capabilities": {
+    "taskKinds": ["request"]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "request",
+        "description": "<Domain> operation request",
+        "contentType": "application/json",
+        "required": true,
+        "example": {
+          "action": "get_approval"
+        },
+        "schema": {
+          "type": "object",
+          "required": ["action"],
+          "properties": {
+            "action": {
+              "type": "string",
+              "title": "Action",
+              "enum": ["request_create", "get_approval", "approve", "reject", "notify_approval"],
+              "description": "The action to perform. Extend this enum with your domain actions."
+            },
+            "summary": {
+              "type": "string",
+              "title": "Summary",
+              "description": "Human-readable description of what is being requested"
+            },
+            "requesterEmail": {
+              "type": "string",
+              "title": "Requester Email",
+              "description": "Email identity of the person behind the requesting agent"
+            },
+            "requesterAgent": {
+              "type": "string",
+              "title": "Requester Agent",
+              "description": "Blocks agentName to notify with the approval decision"
+            },
+            "requestId": {
+              "type": "string",
+              "title": "Request ID",
+              "description": "Approval request ID from a previous response"
+            }
+          }
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "description": "Operation result",
+        "contentType": "application/json",
+        "guaranteed": true
+      }
+    ]
+  },
+  "tags": [
+    {
+      "id": "<domain-tag>",
+      "name": "<Domain>",
+      "description": "<Domain capability description>"
+    }
+  ],
+  "runtime": {
+    "handler": "./handler.ts",
+    "handlerExport": "default",
+    "concurrency": 5,
+    "maxRunningTimeSec": 120,
+    "expectedInstances": 1
+  }
+}

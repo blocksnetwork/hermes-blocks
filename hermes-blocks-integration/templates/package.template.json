@@ -1,0 +1,19 @@
+{
+  "name": "<owner>-hermes-<domain>",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "blocks check",
+    "start": "blocks run",
+    "trigger": "tsx trigger.ts"
+  },
+  "dependencies": {
+    "@blocks-network/sdk": "latest",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.0"
+  }
+}
