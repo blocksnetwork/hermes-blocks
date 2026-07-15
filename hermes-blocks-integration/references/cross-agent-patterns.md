@@ -1,128 +1,82 @@
-# Cross-agent (A2A) patterns
+# Cross-agent patterns
 
-The recipes for agents talking to agents over Blocks. All cross-agent traffic uses these; there is
-no other channel between agents (two-hop rule — see SKILL.md).
+Read this reference when Hermes calls another Blocks agent, decodes artifacts, or composes several
+providers.
 
-## 1. Calling another agent from a script or handler
+## One request/response call
 
 ```ts
-import { TaskClient, textPart } from '@blocks-network/sdk';
+import { TaskClient, decodeInlineArtifact, textPart } from '@blocks-network/sdk';
 
-const client = await TaskClient.create({ billingMode: 'free', apiKey: process.env.BLOCKS_API_KEY });
+const client = await TaskClient.create({
+  billingMode: 'free',
+  apiKey: process.env.BLOCKS_API_KEY,
+});
+
+let session;
 try {
-  const session = await client.sendMessage({
-    agentName: targetAgent,                                    // e.g. 'mark_hermes_calendar'
-    requestParts: [textPart(JSON.stringify(payload), 'request')], // partId = target's io.inputs[0].id
+  session = await client.sendMessage({
+    agentName: targetAgent,
+    requestParts: [textPart(JSON.stringify(payload), targetInputId)],
   });
   await session.waitForTerminal(30_000);
-  // optionally read session.listArtifacts() for the response
-  session.close();
+
+  for (const ref of session.listArtifacts()) {
+    const bytes = ref.kind === 'inline' && ref.data
+      ? decodeInlineArtifact(ref)
+      : (await session.downloadArtifact(ref)).data;
+    console.log(new TextDecoder().decode(bytes));
+  }
 } finally {
+  session?.close();
   client.destroy();
 }
 ```
 
 Rules:
-- **partId is mandatory** and must equal the target card's input id (`'request'` by convention).
-  `textPart(text)` alone defaults the partId to `"text"` and the RPC rejects it.
-- Always `waitForTerminal` with a timeout, `close()` the session, `destroy()` the client — leaked
-  clients keep the process alive.
 
-## 2. Calling out from INSIDE a handler — the await rule
+- `targetInputId` must equal the target card's input id. The generated provider uses `request`.
+- Use an explicit timeout.
+- Treat zero artifacts, invalid JSON, and a JSON result with `status: "error"` as failures when the
+  card guarantees a JSON output.
+- Close the session and destroy the client on every path.
 
-A provider handler is request/response: the moment it returns, the task context is torn down and
-any in-flight async work is killed. A fire-and-forget notification therefore dies silently — the
-symptom is "the other side never got notified" with zero errors logged.
+The generated `call.mjs` implements this pattern and should be preferred over improvised one-shot
+SDK code.
+
+## Nested calls from a provider
+
+A provider may delegate work to another Blocks agent. Await the nested task before returning:
 
 ```ts
-// WRONG — killed at handler return, no error anywhere:
-notifyRequesterAgent(peer, payload);
-return { artifacts: [...] };
-
-// RIGHT — awaited before returning:
-await notifyRequesterAgent(peer, payload);
-return { artifacts: [...] };
+const result = await callAgent(targetAgent, payload);
+return artifact({ status: 'success', result });
 ```
 
-`notifyRequesterAgent` (in the handler template) wraps pattern #1 with its own try/catch so a dead
-peer can't fail the main task, and no-ops when `BLOCKS_API_KEY` or the target is missing. Budget
-its `waitForTerminal` timeout inside your card's `maxRunningTimeSec`.
+Fire-and-forget calls are unsafe because handler teardown can kill in-flight work without a useful
+error. Budget the downstream timeout inside the caller's `runtime.maxRunningTimeSec` and define how
+downstream failure maps to the caller's result artifact.
 
-## 3. The request → approve → notify-back round trip
+Avoid accidental cycles. If agents can call one another, carry a hop count or trace id and refuse
+requests beyond a small configured depth.
 
-The generic action triple for "agent B may not act on agent A's request without B's human saying
-yes" — either side can play either role:
+## Peer aliases
 
-```
-A's human          A's agent (Blocks)            B's agent (Blocks)          B's human
-    |  "ask B for X"     |                             |                        |
-    |------------------->|  request_create {…,         |                        |
-    |                    |    requesterAgent: A}       |                        |
-    |                    |---------------------------->| store pending,         |
-    |                    |   ← pending_approval,reqId  | notify human --------->|
-    |                    |                             |                        |
-    |                    |                             |   approve reqId        |
-    |                    |                             |<-----------------------|
-    |                    |                             | perform the action,    |
-    |                    |  notify_approval {decision} | delete pending         |
-    |                    |<----------------------------|  (awaited!)            |
-    |  "B approved ✅"    |                             |                        |
-    |<-------------------|                             |                        |
-```
-
-Contract details that matter:
-- The requester includes `requesterAgent: ME_AGENT` in `request_create` — that's the return
-  address. The approver persists it with the pending request.
-- Both `approve` AND `reject` notify back (`decision: 'approved' | 'rejected'`). A requester left
-  hanging on rejection is a bug.
-- `notify_approval` on the requester side is **notify-only**: tell the local human, do NOT repeat
-  the domain action. The approver already performed it exactly once; doing it again double-books
-  (in the calendar case: ONE shared event with the requester as invitee, never two copies).
-- `requestId`s (`req_<unique>`) travel in every message so humans can reference them in button
-  labels and natural language.
-
-## 4. Identity resolution — no hardcoded people
-
-Never keep name→email (or name→anything) maps in logic. Resolve who you're dealing with, in order:
-
-1. **Explicit request fields** (e.g. `attendees` containing real emails) — validate with an email
-   regex; a display name is not an identity.
-2. **Blocks-provided caller identity** — `task.callerClaims.email`, `task.callerClaims.sub`,
-   `task.ownerId`.
-3. **Refuse.** Return an error artifact telling the caller exactly what to include. Guessing books
-   meetings with the wrong person; refusing produces a self-correcting error message.
-
-`resolveRequesterEmail` in the handler template implements this order and logs which source won.
-
-## 5. Peer registry (`colleagues.json`)
-
-The initiating side needs to know who "Mark" is. That mapping is DATA, not code:
+When natural-language Hermes workflows refer to stable aliases, keep the mapping in data rather
+than code:
 
 ```json
 {
-  "mark": { "agentName": "mark_hermes_calendar", "email": "mark@example.com",
-             "tz": "America/Los_Angeles", "displayName": "Mark" }
+  "research": { "agentName": "research_agent" },
+  "review": { "agentName": "review_agent" }
 }
 ```
 
-Scripts take `--with <key>` and look the peer up; the owner's own identity comes from `ME_*` env.
-Result: the SAME script runs unchanged on any agent, any direction, and onboarding a new colleague
-is one JSON entry + mutual `blocks invite` — zero code.
+Resolve an alias to `agentName` before calling Blocks. Add email, tenancy, or routing metadata only
+when the capability needs it. Do not make a peer registry mandatory for direct calls.
 
-## 6. Person-independent runbook scripts
+## Private agents
 
-Operational one-shots (approve, reject, list pending) should work identically in every agent's
-folder. The trick (see `../templates/runbook.template.mjs`): resolve everything relative to the
-script's own location —
-
-```js
-const __dir = path.dirname(fileURLToPath(import.meta.url));
-const AGENT_NAME = process.env.LOCAL_AGENT_NAME || process.env.ME_AGENT || path.basename(__dir);
-// SDK + dotenv imported via pathToFileURL(path.join(__dir, 'node_modules/...')) — works from any cwd
-loadEnv({ path: path.join(__dir, '.env') });
-```
-
-This kills three recurring failures at once: wrong-cwd module resolution (cron!), CommonJS
-`require` of the ESM-only SDK, and copy-paste identity drift between agents. Pair the script with
-a tiny runbook skill (like `blocks-calendar-approval`) that just says "find and run this script,
-report the result in one line" — the agent's LLM should execute runbooks, not improvise SDK calls.
+Registration does not automatically grant cross-organization access. Complete the Blocks invite
+flow and inspect grants before debugging SDK code. For symmetric setups, verify the required access
+in each direction.

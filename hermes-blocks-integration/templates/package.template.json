@@ -1,19 +1,23 @@
 {
-  "name": "<owner>-hermes-<domain>",
+  "name": "<PACKAGE_NAME>",
   "version": "1.0.0",
   "private": true,
   "type": "module",
+  "engines": {
+    "node": ">=22.0.0"
+  },
   "scripts": {
     "check": "blocks check",
     "start": "blocks run",
-    "trigger": "tsx trigger.ts"
+    "call": "node call.mjs"
   },
   "dependencies": {
-    "@blocks-network/sdk": "latest",
+    "@blocks-network/sdk": "^1.0.8",
     "dotenv": "^16.4.5"
   },
   "devDependencies": {
-    "tsx": "^4.19.0",
-    "typescript": "^5.6.0"
+    "@blocks-network/cli": "^1.0.10",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
   }
 }

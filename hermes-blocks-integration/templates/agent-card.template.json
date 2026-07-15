@@ -1,11 +1,11 @@
 {
   "identity": {
-    "agentName": "<OWNER>_hermes_<DOMAIN>",
-    "displayName": "<Owner>'s <Domain> Agent",
-    "description": "<What this agent does, one sentence — mention it handles requests from other agents with owner approval if using the approval pattern>",
+    "agentName": <AGENT_NAME_JSON>,
+    "displayName": <DISPLAY_NAME_JSON>,
+    "description": <DESCRIPTION_JSON>,
     "version": "1.0.0",
     "provider": {
-      "organization": "<ORGANIZATION>"
+      "organization": <ORGANIZATION_JSON>
     }
   },
   "capabilities": {
@@ -15,11 +15,11 @@
     "inputs": [
       {
         "id": "request",
-        "description": "<Domain> operation request",
+        "description": "Structured capability request",
         "contentType": "application/json",
         "required": true,
         "example": {
-          "action": "get_approval"
+          "action": "health"
         },
         "schema": {
           "type": "object",
@@ -28,28 +28,13 @@
             "action": {
               "type": "string",
               "title": "Action",
-              "enum": ["request_create", "get_approval", "approve", "reject", "notify_approval"],
-              "description": "The action to perform. Extend this enum with your domain actions."
+              "enum": ["health"],
+              "description": "Capability action. Extend this enum with the actions implemented by handler.ts."
             },
-            "summary": {
-              "type": "string",
-              "title": "Summary",
-              "description": "Human-readable description of what is being requested"
-            },
-            "requesterEmail": {
-              "type": "string",
-              "title": "Requester Email",
-              "description": "Email identity of the person behind the requesting agent"
-            },
-            "requesterAgent": {
-              "type": "string",
-              "title": "Requester Agent",
-              "description": "Blocks agentName to notify with the approval decision"
-            },
-            "requestId": {
-              "type": "string",
-              "title": "Request ID",
-              "description": "Approval request ID from a previous response"
+            "payload": {
+              "type": "object",
+              "title": "Payload",
+              "description": "Optional action-specific input"
             }
           }
         }
@@ -58,7 +43,7 @@
     "outputs": [
       {
         "id": "result",
-        "description": "Operation result",
+        "description": "Structured capability result",
         "contentType": "application/json",
         "guaranteed": true
       }
@@ -66,9 +51,9 @@
   },
   "tags": [
     {
-      "id": "<domain-tag>",
-      "name": "<Domain>",
-      "description": "<Domain capability description>"
+      "id": "hermes",
+      "name": "Hermes",
+      "description": "Hermes capability exposed through Blocks"
     }
   ],
   "runtime": {

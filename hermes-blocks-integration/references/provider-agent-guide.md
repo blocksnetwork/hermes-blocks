@@ -1,92 +1,80 @@
-# Provider agent anatomy
+# Provider agent guide
 
-What a working Blocks provider project looks like and which parts matter. Template files in
-`../templates/` implement all of this; this doc explains WHY each piece is shaped that way.
+Read this reference when changing the generated provider contract, deploying it in a container, or
+operating the Blocks lifecycle.
 
 ## Project layout
 
-```
-{owner}_hermes_{domain}/
-├── agent-card.json      # identity + IO contract; validated by `blocks check`
-├── handler.ts           # the capability; default-exported async function
-├── trigger.ts           # consumer test script (round-trip smoke test)
-├── runbook.mjs          # one-shot operational script (approve/reject/status)
-├── colleagues.json      # peer registry (only for cross-agent setups)
-├── package.json         # "type": "module"; @blocks-network/sdk + dotenv
-├── .env                 # BLOCKS_API_KEY, ME_* identity, domain-specific keys
-└── pending_approvals.json  # runtime state (created by the handler)
+```text
+blocks-provider/
+├── agent-card.json  # Blocks identity and request/response contract
+├── handler.ts       # Hermes capability adapter
+├── call.mjs         # deterministic consumer and smoke test
+├── package.json     # ESM project with Blocks SDK/CLI
+├── .env             # project-local credentials; never commit
+└── .gitignore       # excludes secrets, dependencies, logs, and platform metadata
 ```
 
-## Agent card — the fields that actually bite
+Add domain modules beside the handler. Add state only when the capability requires it; persistence
+is not part of the base transport.
 
-Canonical schema: https://config.blocks.ai/references/agent-card.schema.json (validate with
-`blocks check`; the `blocks-network` skill documents every field). The load-bearing parts:
+## Agent card
 
-- **`io.inputs[0].id`** — this string IS the partId every caller must pass as the second argument
-  of `textPart(...)`. Convention: `"request"`. If a caller omits it or uses a different id, the RPC
-  rejects the task before your handler ever runs. Changing this id breaks every existing caller.
-- **`io.inputs[0].schema`** — an object schema with a required `action` string enum. The
-  single-input/action-enum design keeps one handler per agent and makes new capabilities additive:
-  add an enum value + a `case`, callers of old actions are unaffected.
-- **`io.outputs[0]`** — `{ id: "result", contentType: "application/json", guaranteed: true }`.
-  Guaranteed means every task returns at least this artifact — your handler must return an
-  artifact even on errors (see handler contract).
-- **`capabilities.taskKinds: ["request"]`** — request/response. Streaming (`pipe`) is a different
-  contract; see the `blocks-network` skill.
-- **`runtime`** — `handler` path, `handlerExport: "default"`, `concurrency`, `maxRunningTimeSec`
-  (keep ≥ the longest downstream call your handler awaits, including cross-agent notifications
-  which can take up to their own `waitForTerminal` timeout).
+Validate the card with `blocks check`. Treat the canonical schema from the `blocks-network` skill
+as authoritative. The load-bearing fields are:
 
-## Handler contract
+- `identity.agentName`: letters, digits, and underscores.
+- `io.inputs[0].id`: the exact `partId` every caller must send. The scaffold uses `request`.
+- `io.inputs[0].schema`: the public input contract. Add an enum value for every implemented action.
+- `io.outputs[0]`: a guaranteed JSON result artifact.
+- `runtime.handler` and `handlerExport`: the executable handler contract.
+- `runtime.maxRunningTimeSec`: must cover domain work plus all awaited downstream calls.
 
-```ts
-export default async function handler(
-  task: StartTaskMessage,
-  ctx?: TaskContext,
-): Promise<HandlerResult>
+Pin the provider handler to its card's input id. Configure a different target input id only in
+consumer code. Return `outputId: "result"` with the scaffolded guaranteed artifact.
+
+Changing an input id or action contract breaks existing callers. Version public contracts
+deliberately.
+
+## Handler boundary
+
+Keep the handler thin:
+
+1. Find the declared input part and read its text.
+2. Enforce JSON and payload limits, then dispatch the action.
+3. Call capability functions that do not depend on Blocks when practical.
+4. Report progress for slow work with `ctx?.reportStatus(...)`.
+5. Return a JSON artifact for success and failure.
+
+Never let a normal validation or domain error escape as an opaque task failure. Sanitize public
+errors and never log secrets, URLs containing credentials, or entire sensitive payloads.
+
+If a handler calls another Blocks agent, await that task before returning, close its session, and
+destroy its client. See `cross-agent-patterns.md`.
+
+## Lifecycle
+
+From the provider project:
+
+```bash
+npm install
+npm run check
+blocks login --write-env --dir .
+blocks register
+blocks run
 ```
 
-1. **Parse defensively.** `task.requestParts?.[0]?.text` is the raw input. Try `JSON.parse`; on
-   failure treat the whole text as `{ action: rawText.trim() }` — humans and LLMs will send plain
-   words ("approve", "yes") and that fallback is what makes button-labels-as-commands work.
-2. **Report progress** with `ctx?.reportStatus('...')` for anything slower than ~a second — the
-   caller sees these as progress events.
-3. **Always return an artifact**, success or error:
-   ```ts
-   return { artifacts: [{ data: JSON.stringify(result, null, 2), mimeType: 'application/json' }] };
-   ```
-   Wrap the whole body in try/catch and return the error as a JSON artifact — an unhandled throw
-   gives the caller an opaque failure instead of your diagnostic.
-4. **Statelessness.** Blocks may run every task on a fresh instance. Module-level `Map`s survive
-   only by luck. The template persists to a JSON file (`PENDING_STORE_PATH` or
-   `DATA_DIR/pending_approvals.json`), loading fresh from disk at the start of every call and
-   writing on every mutation. This also makes state visible to sibling processes (runbook scripts,
-   bridges).
-5. **Caller identity.** `task.callerClaims` (email/sub) and `task.ownerId` are Blocks-provided.
-   Prefer explicit fields in the request payload, fall back to claims, and refuse when neither
-   yields a usable identity — never keep a name→person map in code (see
-   `cross-agent-patterns.md`).
-6. **Outbound calls from inside a handler must be awaited** before returning — task teardown
-   kills in-flight work. See `cross-agent-patterns.md` for the full pattern.
+The user owns authentication, registration, publishing, and the long-running process. Register
+private/free first. Use Blocks invitations for private cross-organization access.
 
-## The action-enum dispatch pattern
+`blocks run` reads `BLOCKS_API_KEY` from the project environment. A successful `blocks whoami`
+does not prove the provider project has the key.
 
-One `switch (action)` with three families of cases:
+## Containers
 
-- **Domain actions** (yours): `list`, `create`, whatever the capability does.
-- **Approval actions** (generic, from the template): `request_create`, `approve`, `reject`,
-  `get_approval`/`pending`, `notify_approval`.
-- **Default**: natural-language fallback — match approve/reject words against pending requests,
-  else return a help artifact listing valid actions with JSON examples. A good help response is
-  what lets ANOTHER agent's LLM figure out your API from one failed call.
-
-## Registration lifecycle
-
-`blocks login --write-env --dir <project>` (browser relay for interactive owners, `--api-key-stdin`
-for headless — see SKILL.md Login paths and troubleshooting.md for the container-callback relay) →
-`blocks check` → `blocks register` (private + free — the default posture; publishing public/paid
-is a separate, deliberate step) → `blocks run` (long-running; supervise it like any service) →
-mutual `blocks invite` for each peer org. All interactive commands are run by the USER, not by
-Hermes. Credentials land in `~/.config/blocks/credentials.json`; inside a container, remember the
-project dir is typically mounted (e.g. host `./agent-dir` = container `/opt/data/agent-dir`) — use
-container paths in configs that run inside, host paths in docs for humans.
+- Use paths visible to the running process, not host-only paths.
+- Keep `.env` and any capability state on a persistent mount.
+- If browser login runs inside a container, the OAuth callback may bind to container localhost.
+  Follow the current login relay/headless procedure in the `blocks-network` skill rather than
+  encoding a machine-specific callback workaround here.
+- Supervise `blocks run` as a service and preserve its logs.

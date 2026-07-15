@@ -1,77 +1,61 @@
-# Human-in-the-loop approvals
+# Optional pattern: delayed human approval
 
-How the local human sees a pending cross-agent request and answers it. This is hop 2 of the
-two-hop rule — human ↔ their OWN agent, over whatever channel that person already uses. Nothing
-here is cross-agent traffic.
+This is an adapter pattern, not part of the base Hermes ↔ Blocks transport. Load it only when a
+capability must pause for a person's decision after the incoming Blocks task has ended.
 
-## The persistence prerequisite (non-negotiable)
+## State machine
 
-Whatever UX you pick, the pending request must be on disk before the human is notified. The
-handler that stored it terminates immediately; the approval arrives minutes later, possibly on a
-fresh handler instance, possibly via a different process entirely. The template's store:
+Use domain-appropriate action names, but preserve these transitions:
 
-- Path: `PENDING_STORE_PATH` env, else `${DATA_DIR}/pending_approvals.json`.
-- Load fresh from disk at the start of every handler call; write on every mutation.
-- Shape: `{ "<requestId>": { id, action, summary, ..., requesterAgent, requestedAt } }`.
+1. A peer submits a request.
+2. The provider validates it and persists a pending record before notifying its local human.
+3. The provider returns a `pending` result with a stable request id.
+4. The local human later approves or rejects through the channel already owned by Hermes.
+5. The provider atomically claims the pending record, performs the action at most once when
+   approved, persists the terminal decision, and optionally notifies the requesting Blocks agent.
 
-"Request not found or already processed" on a request you can see in the human's chat = the store
-path differs between writer and reader (typically host vs container path).
+The approval channel is local human ↔ Hermes. Cross-agent communication remains Blocks.
 
-## Approval UX options, ranked
+## Persistence requirements
 
-### Option 1 — reply-keyboard buttons whose label IS the command (recommended; what we shipped)
+- Store pending and terminal decisions outside process memory.
+- Resolve the store path relative to the provider or an explicit environment setting.
+- Load state fresh for every invocation; the decision may run in a different process.
+- Use atomic writes or a transactional store.
+- Preserve idempotency so retries cannot perform the approved action twice.
+- Record requester/return-agent identity from validated input or Blocks caller claims; never guess.
 
-Send the notification through the messaging bot the Hermes gateway already owns, with a reply
-keyboard where each button's visible label is a parseable command:
+Example record:
 
 ```json
-{ "keyboard": [["✅ approve req_abc123", "❌ reject req_abc123"]],
-  "one_time_keyboard": true, "resize_keyboard": true }
+{
+  "id": "req_abc123",
+  "operation": "domain_action",
+  "payload": {},
+  "requesterAgent": "calling_agent",
+  "status": "pending",
+  "createdAt": "2026-01-01T12:00:00Z"
+}
 ```
 
-Tapping a button makes the human's client SEND that text as a normal message → the gateway routes
-it to the agent like any other message → the handler's natural-language matcher picks it up. No
-second process, no callback plumbing, works with the existing gateway. Cost: the tap is visible as
-a sent message (fine — it's an audit trail).
+## Notification boundary
 
-The handler-side matcher must be emoji-tolerant and extract the id:
+Use the human channel Hermes already owns. Do not introduce a second consumer for the same bot,
+queue, or webhook. Keep credentials in the environment and await sends performed inside a Blocks
+handler.
 
-```ts
-const trimmed = rawText.trim().toLowerCase();
-const reqIdMatch = trimmed.match(/req_[a-z0-9_-]+/);
-const parsedReqId = reqIdMatch ? reqIdMatch[0] : null;
-const isApprove = /(^|\s)(✅|approve|yes|sure|accept|ok)(\s|$)/.test(trimmed) && !/reject|deny|decline|❌/.test(trimmed);
-const isReject  = /(^|\s)(❌|reject|no|deny|decline)(\s|$)/.test(trimmed) && !/approve|✅/.test(trimmed);
-```
+If the requester needs a later decision notification, send it over Blocks and await it before the
+decision handler returns. The receiving side should notify its human; it must not repeat the action
+already performed by the approving provider.
 
-Fall back to "most recent pending" when no id parses (bare "yes"/"no").
+## Concrete implementation reference
 
-### Option 2 — Hermes-native clarify buttons
+When the source workspace contains the following projects, their handlers provide a tested example
+of file-backed pending state, approve/reject idempotency, and awaited notify-back:
 
-Where the flow is driven by a Hermes conversation (not a push notification), use Hermes's own
-inline-button facility (`clarify`) and let Hermes translate the choice into the runbook script.
-Zero custom transport code; only fires when Hermes is already mid-conversation with the user.
+- `hermes-john/john_hermes_calendar/handler.ts`
+- `hermes-mark/blocks-project/mark_hermes_calendar/handler.ts`
 
-### Option 3 — standalone callback bridge (last resort)
-
-A long-lived process long-polling a bot's `getUpdates`, turning `callback_data` taps into a Blocks
-call on the person's OWN agent. Only needed when you must push real inline buttons outside any
-gateway conversation. Two sharp edges: (a) one bot = one consumer — `getUpdates` conflicts with a
-gateway or webhook already owning the bot (HTTP 409), so it needs a DEDICATED bot token; (b) it's
-another process to supervise. Prefer options 1–2.
-
-## Notifying the human (send side)
-
-- Read bot tokens and chat ids from env ONLY (`TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`). No
-  defaults: a missing chat id must skip-and-log, not DM some hardcoded person's chat. Hardcoded
-  tokens rot — a revoked token returns 401 forever and the notification path dies silently.
-- **Await the send** when it happens inside a handler (task-teardown rule).
-- Include in the message: what's being asked, by whom (resolved identity), the times/payload in
-  the human's own timezone, and the `req_` id.
-
-## Closing the loop
-
-On approve/reject the handler must, in order: perform (or drop) the stored action exactly once →
-delete from the pending store → **notify the requester's agent over Blocks** (`notify_approval`,
-awaited) → return a one-line result the human channel can show. The requester side's
-`notify_approval` case then tells ITS human — and does not repeat the action.
+Treat their calendar actions, Google credentials, requester fields, notification UI, and action
+names as demo-specific. Copy only the state-machine and transport invariants required by the new
+domain.
