@@ -1,0 +1,66 @@
+{
+  "identity": {
+    "agentName": <AGENT_NAME_JSON>,
+    "displayName": <DISPLAY_NAME_JSON>,
+    "description": <DESCRIPTION_JSON>,
+    "version": "1.0.0",
+    "provider": {
+      "organization": <ORGANIZATION_JSON>
+    }
+  },
+  "capabilities": {
+    "taskKinds": ["request"]
+  },
+  "io": {
+    "inputs": [
+      {
+        "id": "request",
+        "description": "Structured capability request",
+        "contentType": "application/json",
+        "required": true,
+        "example": {
+          "action": "health"
+        },
+        "schema": {
+          "type": "object",
+          "required": ["action"],
+          "properties": {
+            "action": {
+              "type": "string",
+              "title": "Action",
+              "enum": ["health"],
+              "description": "Capability action. Extend this enum with the actions implemented by handler.ts."
+            },
+            "payload": {
+              "type": "object",
+              "title": "Payload",
+              "description": "Optional action-specific input"
+            }
+          }
+        }
+      }
+    ],
+    "outputs": [
+      {
+        "id": "result",
+        "description": "Structured capability result",
+        "contentType": "application/json",
+        "guaranteed": true
+      }
+    ]
+  },
+  "tags": [
+    {
+      "id": "hermes",
+      "name": "Hermes",
+      "description": "Hermes capability exposed through Blocks"
+    }
+  ],
+  "runtime": {
+    "handler": "./handler.ts",
+    "handlerExport": "default",
+    "concurrency": 5,
+    "maxRunningTimeSec": 120,
+    "expectedInstances": 1
+  }
+}
