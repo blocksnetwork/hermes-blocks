@@ -11,6 +11,7 @@ blocks-provider/
 ├── handler.ts       # Hermes capability adapter
 ├── call.mjs         # deterministic consumer and smoke test
 ├── package.json     # ESM project with Blocks SDK/CLI
+├── tsconfig.json    # strict no-emit TypeScript validation
 ├── .env             # project-local credentials; never commit
 └── .gitignore       # excludes secrets, dependencies, logs, and platform metadata
 ```
@@ -58,6 +59,7 @@ From the provider project:
 
 ```bash
 npm install
+npm run typecheck
 npm run check
 blocks login --write-env --dir .
 blocks register

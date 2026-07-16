@@ -104,6 +104,7 @@ const outputs = [
   ['handler.template.ts', 'handler.ts'],
   ['agent-card.template.json', 'agent-card.json'],
   ['package.template.json', 'package.json'],
+  ['tsconfig.template.json', 'tsconfig.json'],
   ['env.template', '.env'],
   ['gitignore.template', '.gitignore'],
   ['call.template.mjs', 'call.mjs'],
@@ -144,7 +145,7 @@ console.log(JSON.stringify({
   agentName,
   next: [
     'Add capability actions to agent-card.json and handler.ts.',
-    'Run npm install, then npm run check.',
+    'Run npm install, then npm run typecheck and npm run check.',
     'Authenticate with blocks login --write-env --dir <project-dir>.',
   ],
 }, null, 2));

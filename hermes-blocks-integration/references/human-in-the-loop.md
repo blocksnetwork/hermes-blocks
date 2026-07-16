@@ -48,14 +48,9 @@ If the requester needs a later decision notification, send it over Blocks and aw
 decision handler returns. The receiving side should notify its human; it must not repeat the action
 already performed by the approving provider.
 
-## Concrete implementation reference
+## Validated implementation shape
 
-When the source workspace contains the following projects, their handlers provide a tested example
-of file-backed pending state, approve/reject idempotency, and awaited notify-back:
-
-- `hermes-john/john_hermes_calendar/handler.ts`
-- `hermes-mark/blocks-project/mark_hermes_calendar/handler.ts`
-
-Treat their calendar actions, Google credentials, requester fields, notification UI, and action
-names as demo-specific. Copy only the state-machine and transport invariants required by the new
-domain.
+This pattern has been validated between two calendar providers using file-backed pending state,
+idempotent approve/reject actions, and awaited notify-back. Those calendar actions, external
+service credentials, requester fields, notification UI, and action names were demo-specific.
+Carry forward only the state-machine and transport invariants required by the new domain.

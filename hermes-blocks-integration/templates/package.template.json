@@ -8,6 +8,7 @@
   },
   "scripts": {
     "check": "blocks check",
+    "typecheck": "tsc --noEmit",
     "start": "blocks run",
     "call": "node call.mjs"
   },
@@ -17,6 +18,7 @@
   },
   "devDependencies": {
     "@blocks-network/cli": "^1.0.10",
+    "@types/node": "^22.15.3",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   }

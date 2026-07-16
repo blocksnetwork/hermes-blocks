@@ -15,7 +15,7 @@ loadEnv({ path: path.join(projectDir, '.env') });
 const [, , targetArg, payloadArg = '{"action":"health"}'] = process.argv;
 const targetAgent = targetArg || process.env.BLOCKS_TARGET_AGENT || process.env.BLOCKS_AGENT_NAME;
 const inputId = process.env.BLOCKS_TARGET_INPUT_ID || 'request';
-const timeoutMs = Number(process.env.BLOCKS_TIMEOUT_MS || 120_000);
+const timeoutMs = Number(process.env.BLOCKS_TIMEOUT_MS || 130_000);
 const maxRequestBytes = Number(process.env.BLOCKS_MAX_REQUEST_BYTES || 1_048_576);
 
 if (!process.env.BLOCKS_API_KEY) {
@@ -45,7 +45,7 @@ if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
 }
 
 const client = await TaskClient.create({
-  billingMode: 'free',
+  billingMode: process.env.BLOCKS_BILLING_MODE || 'free',
   apiKey: process.env.BLOCKS_API_KEY,
 });
 

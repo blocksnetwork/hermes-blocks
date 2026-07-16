@@ -63,7 +63,8 @@ The scaffold creates:
 - `agent-card.json` — a valid request/response card with a safe `health` action.
 - `handler.ts` — a minimal Hermes capability adapter with JSON artifacts.
 - `call.mjs` — a deterministic consumer and smoke-test command.
-- `package.json` and `.env` — current dependencies and project-local configuration.
+- `package.json`, `tsconfig.json`, and `.env` — current dependencies, strict type checking, and
+  project-local configuration.
 - `.gitignore` — excludes credentials, dependencies, logs, and platform metadata.
 
 It refuses to overwrite any existing file. For an existing integration, compare and merge; never
@@ -79,6 +80,7 @@ replace its handler, card, or `.env` wholesale.
 
    ```bash
    npm install
+   npm run typecheck
    npm run check
    ```
 
@@ -124,17 +126,18 @@ optional peer-alias registry.
 ## Optional workflow adapters
 
 Only load `references/human-in-the-loop.md` when the requested capability requires delayed human
-approval. It documents a channel-neutral state machine and points to concrete providers that
-validated the pattern. Their action names, persistence, credentials, and notification UI are
-examples—not requirements of the core Hermes ↔ Blocks integration.
+approval. It documents a channel-neutral state machine and the implementation shape validated by
+provider integrations. Its persistence, credentials, notification UI, and action names are
+domain-specific choices—not requirements of the core Hermes ↔ Blocks integration.
 
 ## Troubleshoot and verify
 
 Read `references/troubleshooting.md` by symptom. Before handing off an integration, verify:
 
-1. `npm run check` passes.
-2. `npm run call -- <agent> '{"action":"health"}'` returns a JSON artifact.
-3. Every declared domain action succeeds and returns an artifact.
-4. Invalid input also returns a diagnostic artifact rather than an opaque task failure.
-5. Nested calls, if any, are awaited and fit within `runtime.maxRunningTimeSec`.
-6. Capability-specific tests cover payload limits, authorization, sensitive inputs, and failures.
+1. `npm run typecheck` passes.
+2. `npm run check` passes.
+3. `npm run call -- <agent> '{"action":"health"}'` returns a JSON artifact.
+4. Every declared domain action succeeds and returns an artifact.
+5. Invalid input also returns a diagnostic artifact rather than an opaque task failure.
+6. Nested calls, if any, are awaited and fit within `runtime.maxRunningTimeSec`.
+7. Capability-specific tests cover payload limits, authorization, sensitive inputs, and failures.

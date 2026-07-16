@@ -9,7 +9,7 @@ providers.
 import { TaskClient, decodeInlineArtifact, textPart } from '@blocks-network/sdk';
 
 const client = await TaskClient.create({
-  billingMode: 'free',
+  billingMode: process.env.BLOCKS_BILLING_MODE || 'free',
   apiKey: process.env.BLOCKS_API_KEY,
 });
 
