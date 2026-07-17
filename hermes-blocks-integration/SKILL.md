@@ -47,7 +47,8 @@ notification UIs, or any domain behavior belong in adapters layered on top.
 
 ## Scaffold a provider
 
-Collect a project directory, valid Blocks agent name, and one-sentence description, then run:
+Collect a project directory, valid Blocks agent name, and one-sentence description, then run the
+bundled [scaffold script](scripts/scaffold.mjs):
 
 ```bash
 node "${HERMES_SKILL_DIR}/scripts/scaffold.mjs" \
@@ -57,6 +58,11 @@ node "${HERMES_SKILL_DIR}/scripts/scaffold.mjs" \
 ```
 
 Optional flags: `--display-name`, `--organization`, and `--dry-run`.
+
+The script renders the bundled [agent card](templates/agent-card.template.json),
+[handler](templates/handler.template.ts), [client](templates/call.template.mjs),
+[package](templates/package.template.json), [TypeScript config](templates/tsconfig.template.json),
+[environment](templates/env.template), and [gitignore](templates/gitignore.template) templates.
 
 The scaffold creates:
 
