@@ -13,15 +13,19 @@ type RequestPayload = {
 // use a different id via BLOCKS_TARGET_INPUT_ID in call.mjs.
 const INPUT_ID = 'request';
 
-function positiveIntegerEnv(name: string, fallback: number): number {
-  const value = Number(process.env[name] || fallback);
-  if (!Number.isSafeInteger(value) || value <= 0) {
+function positiveInteger(value: string | undefined, fallback: number, name: string): number {
+  const parsed = Number(value || fallback);
+  if (!Number.isSafeInteger(parsed) || parsed <= 0) {
     throw new Error(`${name} must be a positive integer`);
   }
-  return value;
+  return parsed;
 }
 
-const MAX_REQUEST_BYTES = positiveIntegerEnv('BLOCKS_MAX_REQUEST_BYTES', 1_048_576);
+const MAX_REQUEST_BYTES = positiveInteger(
+  process.env.BLOCKS_MAX_REQUEST_BYTES,
+  1_048_576,
+  'BLOCKS_MAX_REQUEST_BYTES',
+);
 
 function artifact(value: unknown): HandlerResult {
   return {
