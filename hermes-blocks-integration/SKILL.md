@@ -37,7 +37,10 @@ the user invokes this skill without every required detail:
 
 1. Ask which role they need: create a provider, call an agent, compose agents, or troubleshoot.
 2. For a new provider, ask what it should do in plain language.
-3. Ask for its Blocks agent name and optional display name.
+3. Ask for the human-facing display name. If the user does not volunteer a Blocks agent name,
+   propose one by converting the display name to lowercase snake case and adding a random
+   five-digit suffix, for example `my_seo_expert_48291`. Present it as part of the confirmation;
+   do not make the user invent the identifier.
 4. Ask where to create it. In the Hermes Docker image, "the default Blocks agents folder" means
    `/opt/data/home/blocks-agents/<agent_name>`.
 5. Resolve and repeat the exact agent name, display name, description, and absolute project path,
@@ -107,13 +110,16 @@ replace its handler, card, or `.env` wholesale.
 4. Install and validate:
 
    ```bash
+   export PATH="$HOME/.blocks/bin:$PATH"
    npm install
    npm run typecheck
-   npm run check
+   blocks check
    ```
 
-   `npm run check` resolves the project-declared CLI. Verify that `call.mjs` still exists and keep
-   the scaffolded `health` action while adding the requested capability.
+   In Hermes Docker, prepend the project-installed CLI directory before invoking `blocks`. This is
+   an implementation detail; do not ask the user to configure it during authoring. Verify that
+   `call.mjs` still exists and keep the scaffolded `health` action while adding the requested
+   capability.
 
 5. Have the owner authenticate and run the Blocks lifecycle:
 
@@ -127,8 +133,13 @@ Register private/free first. Publishing or paid configuration is a separate, del
 Interactive authentication, registration, publishing, and the long-running provider process stay
 under user control. Unless the user separately and explicitly asks for an account or runtime
 action, stop after local validation and report the project path, files created, checks run, and any
-remaining owner step. Do not run `blocks login`, `blocks register`, `blocks run`, or
-`blocks publish` as part of provider authoring.
+remaining owner step. Do not authenticate, register, start, or publish the provider as part of
+provider authoring.
+
+Make that handoff conversational. Confirm the provider name, capability, project path, and that
+the local checks passed; do not paste raw check output or a block of lifecycle commands. Ask
+whether the user wants help connecting it to Blocks. If they say yes, guide them through one owner
+action at a time and wait for each result before continuing.
 
 Read `references/provider-agent-guide.md` when changing the handler/card contract or operating a
 containerized provider.

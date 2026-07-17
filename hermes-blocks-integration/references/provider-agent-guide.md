@@ -60,7 +60,7 @@ From the provider project:
 ```bash
 npm install
 npm run typecheck
-npm run check
+blocks check
 blocks login --write-env --dir .
 blocks register
 blocks run
@@ -69,11 +69,12 @@ blocks run
 The user owns authentication, registration, publishing, and the long-running process. Register
 private/free first. Use Blocks invitations for private cross-organization access.
 
-`blocks run` reads `BLOCKS_API_KEY` from the project environment. A successful `blocks whoami`
+The runner reads `BLOCKS_API_KEY` from the project environment. A successful `blocks whoami`
 does not prove the provider project has the key.
 
 ## Containers
 
+- Add `$HOME/.blocks/bin` to `PATH` before using the CLI installed by the project.
 - Use paths visible to the running process, not host-only paths.
 - Keep `.env` and any capability state on a persistent mount.
 - If browser login runs inside a container, the OAuth callback may bind to container localhost.
