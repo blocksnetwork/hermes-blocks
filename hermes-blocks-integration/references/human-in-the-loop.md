@@ -23,6 +23,7 @@ The approval channel is local human ↔ Hermes. Cross-agent communication remain
 - Load state fresh for every invocation; the decision may run in a different process.
 - Use atomic writes or a transactional store.
 - Preserve idempotency so retries cannot perform the approved action twice.
+- Expire pending requests, rate-limit creation per requester, and reject replayed terminal ids.
 - Record requester/return-agent identity from validated input or Blocks caller claims; never guess.
 
 Example record:
@@ -50,7 +51,7 @@ already performed by the approving provider.
 
 ## Validated implementation shape
 
-This pattern has been validated between two calendar providers using file-backed pending state,
-idempotent approve/reject actions, and awaited notify-back. Those calendar actions, external
-service credentials, requester fields, notification UI, and action names were demo-specific.
+This pattern has been validated in provider integrations using file-backed pending state,
+idempotent approve/reject actions, and awaited notify-back. The external service actions,
+credentials, requester fields, notification UI, and action names were implementation-specific.
 Carry forward only the state-machine and transport invariants required by the new domain.
