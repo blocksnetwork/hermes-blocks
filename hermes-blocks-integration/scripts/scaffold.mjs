@@ -77,6 +77,11 @@ if (flags.has('help')) {
   process.exit(0);
 }
 
+const nodeMajor = Number.parseInt(process.versions.node.split('.')[0], 10);
+if (!Number.isSafeInteger(nodeMajor) || nodeMajor < 22) {
+  throw new Error(`Node.js 22 or newer is required; found ${process.versions.node}`);
+}
+
 const projectArg = values.get('project-dir');
 const agentName = values.get('agent-name');
 const description = values.get('description');

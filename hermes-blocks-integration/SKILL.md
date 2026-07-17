@@ -50,7 +50,7 @@ notification UIs, or any domain behavior belong in adapters layered on top.
 Collect a project directory, valid Blocks agent name, and one-sentence description, then run:
 
 ```bash
-node <path-to-this-skill>/scripts/scaffold.mjs \
+node "${HERMES_SKILL_DIR}/scripts/scaffold.mjs" \
   --project-dir <project-dir> \
   --agent-name <agent_name> \
   --description "<capability description>"
@@ -114,7 +114,7 @@ const session = await client.sendMessage({
   agentName: targetAgent,
   requestParts: [textPart(JSON.stringify(payload), targetInputId)],
 });
-await session.waitForTerminal(30_000);
+await session.waitForTerminal(130_000);
 ```
 
 Always close the session and destroy the client. For private cross-organization agents, complete

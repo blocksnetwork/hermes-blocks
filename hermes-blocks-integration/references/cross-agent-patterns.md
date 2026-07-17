@@ -19,7 +19,7 @@ try {
     agentName: targetAgent,
     requestParts: [textPart(JSON.stringify(payload), targetInputId)],
   });
-  await session.waitForTerminal(30_000);
+  await session.waitForTerminal(130_000);
 
   for (const ref of session.listArtifacts()) {
     const bytes = ref.kind === 'inline' && ref.data
@@ -36,7 +36,8 @@ try {
 Rules:
 
 - `targetInputId` must equal the target card's input id. The generated provider uses `request`.
-- Use an explicit timeout.
+- Use an explicit timeout that exceeds the target card's `runtime.maxRunningTimeSec`; the
+  scaffolded 120-second provider uses a 130-second client timeout.
 - Treat zero artifacts, invalid JSON, and a JSON result with `status: "error"` as failures when the
   card guarantees a JSON output.
 - Close the session and destroy the client on every path.
