@@ -30,6 +30,23 @@ The core supports three roles:
 Do not bake business workflows into the transport layer. Persistence, delayed decisions,
 notification UIs, or any domain behavior belong in adapters layered on top.
 
+## Conversational intake
+
+Treat chat as a short guided conversation, not a request for a shell-command specification. When
+the user invokes this skill without every required detail:
+
+1. Ask which role they need: create a provider, call an agent, compose agents, or troubleshoot.
+2. For a new provider, ask what it should do in plain language.
+3. Ask for its Blocks agent name and optional display name.
+4. Ask where to create it. In the Hermes Docker image, "the default Blocks agents folder" means
+   `/opt/data/home/blocks-agents/<agent_name>`.
+5. Resolve and repeat the exact agent name, display name, description, and absolute project path,
+   then ask for confirmation before writing files or installing dependencies.
+
+Keep each chat message brief and ask at most two closely related questions at a time. Do not make
+the user name `scripts/scaffold.mjs`, package-manager commands, PATH changes, or implementation
+details that this skill already knows.
+
 ## Non-negotiable protocol rules
 
 - Use Node 22+ with the current `@blocks-network/sdk` and `@blocks-network/cli` versions declared
@@ -47,8 +64,8 @@ notification UIs, or any domain behavior belong in adapters layered on top.
 
 ## Scaffold a provider
 
-Collect a project directory, valid Blocks agent name, and one-sentence description, then run the
-bundled [scaffold script](scripts/scaffold.mjs):
+After the user confirms the intake summary, run the bundled
+[scaffold script](scripts/scaffold.mjs) exactly once:
 
 ```bash
 node "${HERMES_SKILL_DIR}/scripts/scaffold.mjs" \
@@ -58,6 +75,11 @@ node "${HERMES_SKILL_DIR}/scripts/scaffold.mjs" \
 ```
 
 Optional flags: `--display-name`, `--organization`, and `--dry-run`.
+
+Do not use `blocks init`, hand-write a second scaffold, fetch another template, or install the
+Blocks CLI globally. The scaffolded `package.json` declares the CLI and SDK. Keep all provider
+edits inside the confirmed project directory; never patch this installed skill, its references,
+scripts, or templates while creating a provider.
 
 The script renders the bundled [agent card](templates/agent-card.template.json),
 [handler](templates/handler.template.ts), [client](templates/call.template.mjs),
@@ -90,6 +112,9 @@ replace its handler, card, or `.env` wholesale.
    npm run check
    ```
 
+   `npm run check` resolves the project-declared CLI. Verify that `call.mjs` still exists and keep
+   the scaffolded `health` action while adding the requested capability.
+
 5. Have the owner authenticate and run the Blocks lifecycle:
 
    ```bash
@@ -100,7 +125,10 @@ replace its handler, card, or `.env` wholesale.
 
 Register private/free first. Publishing or paid configuration is a separate, deliberate action.
 Interactive authentication, registration, publishing, and the long-running provider process stay
-under user control.
+under user control. Unless the user separately and explicitly asks for an account or runtime
+action, stop after local validation and report the project path, files created, checks run, and any
+remaining owner step. Do not run `blocks login`, `blocks register`, `blocks run`, or
+`blocks publish` as part of provider authoring.
 
 Read `references/provider-agent-guide.md` when changing the handler/card contract or operating a
 containerized provider.
