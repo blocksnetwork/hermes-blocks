@@ -60,10 +60,10 @@ From the provider project:
 ```bash
 npm install
 npm run typecheck
-npm run check
-npm run login -- --write-env --dir .
-npm run register
-npm start
+blocks check
+blocks login --write-env --dir .
+blocks register
+blocks run
 ```
 
 The user owns authentication, registration, publishing, and the long-running process. Register
@@ -74,9 +74,10 @@ does not prove the provider project has the key.
 
 ## Containers
 
+- Add `$HOME/.blocks/bin` to `PATH` before using the CLI installed by the project.
 - Use paths visible to the running process, not host-only paths.
 - Keep `.env` and any capability state on a persistent mount.
 - If browser login runs inside a container, the OAuth callback may bind to container localhost.
   Follow the current login relay/headless procedure in the `blocks-network` skill rather than
   encoding a machine-specific callback workaround here.
-- Supervise `npm start` as a service and preserve its logs.
+- Supervise `blocks run` as a service and preserve its logs.

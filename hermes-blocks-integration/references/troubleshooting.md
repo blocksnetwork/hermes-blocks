@@ -7,7 +7,7 @@
 | `ReferenceError: require is not defined` | Blocks SDK used from CommonJS | Use ESM (`.mjs` or a `"type": "module"` project) |
 | SDK package cannot be resolved | Script is outside the provider project or dependencies are missing | Keep `call.mjs` beside `package.json` and run `npm install` |
 | Anonymous/fingerprint authentication error | No valid Blocks credential is available | Authenticate with the current `blocks login` procedure |
-| `npm start` says `BLOCKS_API_KEY` is required while `blocks whoami` works | CLI profile is authenticated but project `.env` is not | Run `npm run login -- --write-env --dir <project>` and verify the project environment |
+| `blocks run` says `BLOCKS_API_KEY` is required while `blocks whoami` works | CLI profile is authenticated but project `.env` is not | Run `blocks login --write-env --dir <project>` and verify the project environment |
 | Cross-organization call looks unauthorized | Private-agent invite/grant is missing | Complete the Blocks invite flow and inspect grants |
 | Nested call never reaches the peer | Outbound promise was not awaited before handler return | Await send, terminal state, artifact reads, and cleanup |
 | Process remains alive after a one-shot call | Session/client was not closed | Call `session.close()` and `client.destroy()` in `finally` |

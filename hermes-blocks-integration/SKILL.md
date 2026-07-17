@@ -110,21 +110,23 @@ replace its handler, card, or `.env` wholesale.
 4. Install and validate:
 
    ```bash
+   export PATH="$HOME/.blocks/bin:$PATH"
    npm install
    npm run typecheck
-   npm run check
+   blocks check
    ```
 
-   The generated scripts resolve the project-declared CLI from the Hermes home directory, so no
-   PATH setup is needed. Verify that `call.mjs` still exists and keep the scaffolded `health`
-   action while adding the requested capability.
+   In Hermes Docker, prepend the project-installed CLI directory before invoking `blocks`. This is
+   an implementation detail; do not ask the user to configure it during authoring. Verify that
+   `call.mjs` still exists and keep the scaffolded `health` action while adding the requested
+   capability.
 
 5. Have the owner authenticate and run the Blocks lifecycle:
 
    ```bash
-   npm run login -- --write-env --dir <project-dir>
-   npm run register
-   npm start
+   blocks login --write-env --dir <project-dir>
+   blocks register
+   blocks run
    ```
 
 Register private/free first. Publishing or paid configuration is a separate, deliberate action.
