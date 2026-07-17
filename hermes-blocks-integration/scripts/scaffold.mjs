@@ -151,6 +151,6 @@ console.log(JSON.stringify({
   next: [
     'Add capability actions to agent-card.json and handler.ts.',
     'Run npm install, then npm run typecheck and npm run check.',
-    'Authenticate with blocks login --write-env --dir <project-dir>.',
+    'Authenticate with npm run login -- --write-env --dir <project-dir>.',
   ],
 }, null, 2));

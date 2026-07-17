@@ -61,15 +61,15 @@ From the provider project:
 npm install
 npm run typecheck
 npm run check
-blocks login --write-env --dir .
-blocks register
-blocks run
+npm run login -- --write-env --dir .
+npm run register
+npm start
 ```
 
 The user owns authentication, registration, publishing, and the long-running process. Register
 private/free first. Use Blocks invitations for private cross-organization access.
 
-`blocks run` reads `BLOCKS_API_KEY` from the project environment. A successful `blocks whoami`
+The runner reads `BLOCKS_API_KEY` from the project environment. A successful `blocks whoami`
 does not prove the provider project has the key.
 
 ## Containers
@@ -79,4 +79,4 @@ does not prove the provider project has the key.
 - If browser login runs inside a container, the OAuth callback may bind to container localhost.
   Follow the current login relay/headless procedure in the `blocks-network` skill rather than
   encoding a machine-specific callback workaround here.
-- Supervise `blocks run` as a service and preserve its logs.
+- Supervise `npm start` as a service and preserve its logs.

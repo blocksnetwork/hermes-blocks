@@ -7,9 +7,11 @@
     "node": ">=22.0.0"
   },
   "scripts": {
-    "check": "blocks check",
+    "check": "\"$HOME/.blocks/bin/blocks\" check",
+    "login": "\"$HOME/.blocks/bin/blocks\" login",
+    "register": "\"$HOME/.blocks/bin/blocks\" register",
     "typecheck": "tsc --noEmit",
-    "start": "blocks run",
+    "start": "\"$HOME/.blocks/bin/blocks\" run",
     "call": "node call.mjs"
   },
   "dependencies": {
