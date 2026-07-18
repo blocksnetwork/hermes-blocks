@@ -141,15 +141,30 @@ the local checks passed; do not paste raw check output or a block of lifecycle c
 whether the user wants help connecting it to Blocks. If they say yes, guide them through one owner
 action at a time and wait for each result before continuing.
 
+When the user explicitly asks Hermes to register, start, and test a provider after authentication:
+
+1. Work from the confirmed project directory and prepend `$HOME/.blocks/bin` to `PATH`.
+2. Confirm that the project `.env` contains a non-empty `BLOCKS_API_KEY` without reading or
+   printing its value. If it does not, ask the user to complete local login first.
+3. Run `blocks register`; keep the default private/free registration. If it is already registered,
+   continue without creating a second provider.
+4. Start `blocks run` as a background process with output in `.blocks-run.log` and its PID in
+   `.blocks-run.pid`, so the chat turn can finish while the provider remains available. Reuse an
+   already-running matching process instead of starting a duplicate.
+5. Wait until the provider reports that it is running, then call
+   `node call.mjs <agent_name> '{"action":"health"}'`.
+6. Tell the user whether registration, startup, and the health request succeeded. Do not paste the
+   full runtime log. On request, stop the recorded process cleanly and remove the stale PID file.
+
 Read `references/provider-agent-guide.md` when changing the handler/card contract or operating a
 containerized provider.
 
 ## Call an agent
 
-Use the generated deterministic client:
+Use the generated deterministic client from the provider project:
 
 ```bash
-npm run call -- <target_agent> '{"action":"health"}'
+node call.mjs <target_agent> '{"action":"health"}'
 ```
 
 Or use the SDK directly:
@@ -180,8 +195,8 @@ domain-specific choices—not requirements of the core Hermes ↔ Blocks integra
 Read `references/troubleshooting.md` by symptom. Before handing off an integration, verify:
 
 1. `npm run typecheck` passes.
-2. `npm run check` passes.
-3. `npm run call -- <agent> '{"action":"health"}'` returns a JSON artifact.
+2. `blocks check` passes.
+3. `node call.mjs <agent> '{"action":"health"}'` returns a JSON artifact.
 4. Every declared domain action succeeds and returns an artifact.
 5. Invalid input also returns a diagnostic artifact rather than an opaque task failure.
 6. Nested calls, if any, are awaited and fit within `runtime.maxRunningTimeSec`.
