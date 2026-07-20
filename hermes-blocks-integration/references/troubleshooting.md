@@ -14,6 +14,7 @@
 | Task finishes without a usable response | Handler threw or returned no guaranteed artifact | Catch normal errors and return a JSON diagnostic artifact |
 | Slow composed flow is terminated | Card timeout is shorter than domain work plus nested calls | Increase `runtime.maxRunningTimeSec` or reduce nested timeouts |
 | Calls recurse between agents | Composition has no cycle guard | Add a hop count or trace id and enforce a small maximum depth |
+| Authoring stops after the scaffold is created | The Hermes run ended before implementation or local validation completed | Continue from the same project, preserve its confirmed identity and `.env`, do not rerun the scaffold, and finish every local check before authentication |
 | Browser login callback is unreachable in a container | OAuth listener is bound inside the container | Create a key at `https://app.blocks.ai/manage/api-keys` and use the silent `docker exec` + `blocks login --api-key-stdin --write-env` flow from the provider guide |
 
 For delayed approval state failures, read `human-in-the-loop.md`; those issues are intentionally
