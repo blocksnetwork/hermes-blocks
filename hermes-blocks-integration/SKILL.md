@@ -121,25 +121,51 @@ replace its handler, card, or `.env` wholesale.
    `call.mjs` still exists and keep the scaffolded `health` action while adding the requested
    capability.
 
-5. Have the owner authenticate and run the Blocks lifecycle:
+5. Hand authentication back to the owner, then continue the lifecycle only when they ask.
 
-   ```bash
-   blocks login --write-env --dir <project-dir>
-   blocks register
-   blocks run
-   ```
+Authentication is the one step Hermes must not perform through chat. Never ask the user to paste a
+Blocks API key into Telegram or another messaging channel. After local validation, ask whether they
+want help connecting the provider. If they say yes:
 
-Register private/free first. Publishing or paid configuration is a separate, deliberate action.
-Interactive authentication, registration, publishing, and the long-running provider process stay
-under user control. Unless the user separately and explicitly asks for an account or runtime
-action, stop after local validation and report the project path, files created, checks run, and any
-remaining owner step. Do not authenticate, register, start, or publish the provider as part of
-provider authoring.
+- For a local, non-containerized project, `blocks login --write-env --dir <project-dir>` may use
+  browser OAuth.
+- For Hermes Docker, default to an API key because the browser callback may be unreachable. Tell
+  the user to create one at `https://app.blocks.ai/manage/api-keys`. Resolve the Hermes container
+  name first, then give the user this single host-side command with all placeholders filled in:
 
-Make that handoff conversational. Confirm the provider name, capability, project path, and that
-the local checks passed; do not paste raw check output or a block of lifecycle commands. Ask
-whether the user wants help connecting it to Blocks. If they say yes, guide them through one owner
-action at a time and wait for each result before continuing.
+  ```bash
+  docker exec -it --env HOME=/opt/data/home --user hermes \
+    -w <project-dir> <container-name> bash -lc \
+    'read -s -p "Paste your Blocks API key: " key; echo;
+    printf "%s\n" "$key" | "$HOME/.blocks/bin/blocks" login \
+      --api-key-stdin --write-env --dir .'
+  ```
+
+  The key must be read silently at runtime, not embedded in the command, shell history, chat, or
+  logs. Do not suggest `npx blocks login` or a host-side `cd /opt/data/...`; that path exists only
+  inside the container. If the container name is unknown, ask for it instead of emitting an
+  unusable placeholder.
+
+Wait for the owner to report that login succeeded. Then guide the remaining lifecycle through
+short chat confirmations rather than a block of shell commands:
+
+1. Ask whether to register the provider Private + Free. After explicit approval, Hermes may run
+   `blocks register` from the project directory and report the result.
+2. Ask whether to start the provider. After explicit approval, Hermes may start `blocks run` as a
+   managed long-running process, preserve its logs, and report whether it is online.
+3. Ask whether to send the scaffolded health request. After explicit approval, run `call.mjs` and
+   summarize the returned artifact.
+
+Publishing or paid configuration is a separate, deliberate owner action. Never accept terms or
+run `blocks publish --accept-terms` on the user's behalf.
+
+Unless the user separately and explicitly asks for an account or runtime action, stop after local
+validation and report the project path, files created, checks run, and remaining owner step. Do not
+authenticate, register, start, or publish the provider as part of provider authoring.
+
+Make the handoff conversational. Confirm the provider name, capability, project path, and that the
+local checks passed; do not paste raw check output or multiple lifecycle commands. Guide one owner
+decision at a time and wait for each result before continuing.
 
 Read `references/provider-agent-guide.md` when changing the handler/card contract or operating a
 containerized provider.

@@ -55,29 +55,32 @@ destroy its client. See `cross-agent-patterns.md`.
 
 ## Lifecycle
 
-From the provider project:
+From the provider project, local validation is:
 
 ```bash
 npm install
 npm run typecheck
 blocks check
-blocks login --write-env --dir .
-blocks register
-blocks run
 ```
 
-The user owns authentication, registration, publishing, and the long-running process. Register
-private/free first. Use Blocks invitations for private cross-organization access.
+The user owns authentication and every account/runtime decision. After the user authenticates and
+explicitly approves each step, Hermes may register private/free, start the runner, and send the
+health request. Publishing remains a separate owner action because it changes listing or billing
+and may require accepting terms. Use Blocks invitations for private cross-organization access.
 
 The runner reads `BLOCKS_API_KEY` from the project environment. A successful `blocks whoami`
 does not prove the provider project has the key.
 
 ## Containers
 
-- Add `$HOME/.blocks/bin` to `PATH` before using the CLI installed by the project.
+- Add `$HOME/.blocks/bin` to `PATH` before using the CLI installed by the project. Do not assume
+  `npx blocks` resolves the project-installed binary.
 - Use paths visible to the running process, not host-only paths.
 - Keep `.env` and any capability state on a persistent mount.
-- If browser login runs inside a container, the OAuth callback may bind to container localhost.
-  Follow the current login relay/headless procedure in the `blocks-network` skill rather than
-  encoding a machine-specific callback workaround here.
+- Default to API-key login because a browser callback inside the container may be unreachable.
+  Direct the user to `https://app.blocks.ai/manage/api-keys`, then give them one host-side command
+  that reads the key silently and pipes it to `blocks login --api-key-stdin --write-env --dir .`
+  inside the container. Never request the key in chat or embed it in shell history.
+- A host terminal cannot `cd` to `/opt/data/...`. Use `docker exec` with the known container name,
+  `--env HOME=/opt/data/home`, `--user hermes`, and `-w <project-dir>`.
 - Supervise `blocks run` as a service and preserve its logs.
