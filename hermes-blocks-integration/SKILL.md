@@ -48,7 +48,11 @@ the user invokes this skill without every required detail:
 
 Keep each chat message brief and ask at most two closely related questions at a time. Do not make
 the user name `scripts/scaffold.mjs`, package-manager commands, PATH changes, or implementation
-details that this skill already knows.
+details that this skill already knows. After asking a question, end the turn and wait for the
+answer. Once implementation begins, send a brief working update and ask the user to wait for a
+completion or incomplete-status message before sending more requirements. Treat a message that
+arrives during incomplete work as a follow-up to the confirmed project, not as a new intake,
+unless the user explicitly changes the request.
 
 ## Non-negotiable protocol rules
 
@@ -122,6 +126,27 @@ replace its handler, card, or `.env` wholesale.
    capability.
 
 5. Hand authentication back to the owner, then continue the lifecycle only when they ask.
+
+### Resume interrupted authoring
+
+If the current run ends before implementation and all local checks are complete, do not claim
+the provider is ready. Report:
+
+- the exact project path and confirmed agent identity;
+- what was completed and what remains;
+- which checks have and have not passed;
+- this continuation message with the real project path filled in:
+
+  ```text
+  Please continue from the existing provider at <project-dir>. Finish implementation and local
+  validation. Do not connect, register, or publish yet.
+  ```
+
+On the continuation turn, inspect the existing project before editing. Preserve its confirmed
+agent name, display name, description, path, and `.env`. Do not run the scaffold again or replace
+existing files wholesale. Complete only the remaining implementation and validation work, then
+run the full local checklist. Authentication and account actions remain blocked until every local
+check passes and the owner separately asks to continue.
 
 Authentication is the one step Hermes must not perform through chat. Never ask the user to paste a
 Blocks API key into Telegram or another messaging channel. After local validation, ask whether they
