@@ -66,9 +66,11 @@ any account action. It then asks for separate approval at each step:
 Publishing is separate. Hermes must not accept publishing terms or run
 `blocks publish --accept-terms` on the owner's behalf.
 
-For Docker, never paste a Blocks API key into Telegram. Hermes asks for the host-side container
-name and returns one `docker exec` command that reads the key silently and runs
-`blocks login --api-key-stdin --write-env` inside the provider project. See the
+For Docker, never paste a Blocks API key into Telegram. Set `HERMES_CONTAINER_NAME` to the
+host-side Docker name when creating the container. Hermes then returns one resolved `docker exec`
+command that reads the key silently and runs `blocks login --api-key-stdin --write-env` inside the
+provider project. Installations without that variable fall back to asking for the container name.
+See the
 [provider guide](hermes-blocks-integration/references/provider-agent-guide.md) for the exact
 handoff.
 

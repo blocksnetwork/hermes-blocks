@@ -156,7 +156,10 @@ want help connecting the provider. If they say yes:
   browser OAuth.
 - For Hermes Docker, default to an API key because the browser callback may be unreachable. Tell
   the user to create one at `https://app.blocks.ai/manage/api-keys`. Resolve the Hermes container
-  name first, then give the user this single host-side command with all placeholders filled in:
+  name from `HERMES_CONTAINER_NAME` first. If it is set, use that value without asking another
+  question. If it is absent, ask the user for the name shown by `docker ps`; do not guess it from
+  the container ID or hostname. Then give the user this single host-side command with all
+  placeholders filled in:
 
   ```bash
   docker exec -it --env HOME=/opt/data/home --user hermes \
@@ -168,8 +171,7 @@ want help connecting the provider. If they say yes:
 
   The key must be read silently at runtime, not embedded in the command, shell history, chat, or
   logs. Do not suggest `npx blocks login` or a host-side `cd /opt/data/...`; that path exists only
-  inside the container. If the container name is unknown, ask for it instead of emitting an
-  unusable placeholder.
+  inside the container. Never emit an unresolved container-name placeholder.
 
 Wait for the owner to report that login succeeded. Then guide the remaining lifecycle through
 short chat confirmations rather than a block of shell commands:

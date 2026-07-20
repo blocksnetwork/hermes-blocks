@@ -77,10 +77,14 @@ does not prove the provider project has the key.
   `npx blocks` resolves the project-installed binary.
 - Use paths visible to the running process, not host-only paths.
 - Keep `.env` and any capability state on a persistent mount.
+- Set `HERMES_CONTAINER_NAME` to the host-side Docker name when creating the Hermes container. The
+  skill can then build a resolved `docker exec` login command without asking the user for metadata
+  already chosen during setup.
 - Default to API-key login because a browser callback inside the container may be unreachable.
   Direct the user to `https://app.blocks.ai/manage/api-keys`, then give them one host-side command
   that reads the key silently and pipes it to `blocks login --api-key-stdin --write-env --dir .`
   inside the container. Never request the key in chat or embed it in shell history.
-- A host terminal cannot `cd` to `/opt/data/...`. Use `docker exec` with the known container name,
-  `--env HOME=/opt/data/home`, `--user hermes`, and `-w <project-dir>`.
+- A host terminal cannot `cd` to `/opt/data/...`. Use `docker exec` with the container name from
+  `HERMES_CONTAINER_NAME` or the user, `--env HOME=/opt/data/home`, `--user hermes`, and
+  `-w <project-dir>`.
 - Supervise `blocks run` as a service and preserve its logs.
