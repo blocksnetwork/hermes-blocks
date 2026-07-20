@@ -14,7 +14,7 @@
 | Task finishes without a usable response | Handler threw or returned no guaranteed artifact | Catch normal errors and return a JSON diagnostic artifact |
 | Slow composed flow is terminated | Card timeout is shorter than domain work plus nested calls | Increase `runtime.maxRunningTimeSec` or reduce nested timeouts |
 | Calls recurse between agents | Composition has no cycle guard | Add a hop count or trace id and enforce a small maximum depth |
-| Browser login callback is unreachable in a container | OAuth listener is bound inside the container | Follow the current container/headless login procedure from the `blocks-network` skill |
+| Browser login callback is unreachable in a container | OAuth listener is bound inside the container | Create a key at `https://app.blocks.ai/manage/api-keys` and use the silent `docker exec` + `blocks login --api-key-stdin --write-env` flow from the provider guide |
 
 For delayed approval state failures, read `human-in-the-loop.md`; those issues are intentionally
 kept out of the generic transport checklist.
